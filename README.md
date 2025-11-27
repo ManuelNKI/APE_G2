@@ -160,8 +160,8 @@ private final String apiUrl = "http://localhost/Api_Vehiculos/api.php";
 
 ## Autores 👨‍💻
 
-**Carlos** - [CarlitosssssssR](https://github.com/CarlitosssssssR)
-**Manuel** - [ManuelNKI](https://github.com/ManuelNKI)
+- **Carlos** - [CarlitosssssssR](https://github.com/CarlitosssssssR)
+- **Manuel** - [ManuelNKI](https://github.com/ManuelNKI)
 
 ## Licencia 📄
 
