@@ -158,9 +158,10 @@ private final String apiUrl = "http://localhost/Api_Vehiculos/api.php";
 - Verifica que tengas JDK 11 o superior instalado
 - Ejecuta `mvn clean install` para descargar las dependencias
 
-## Autor 👨‍💻
+## Autores 👨‍💻
 
 **Carlos** - [CarlitosssssssR](https://github.com/CarlitosssssssR)
+**Manuel** - [ManuelNKI](https://github.com/ManuelNKI)
 
 ## Licencia 📄
 
