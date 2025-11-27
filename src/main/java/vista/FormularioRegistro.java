@@ -319,6 +319,30 @@ public class FormularioRegistro extends javax.swing.JFrame {
                 }
             }
         });
+
+        jtxtFiltrar.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+                String text = jtxtFiltrar.getText();
+
+                if (Character.isLowerCase(c)) {
+                    evt.setKeyChar(Character.toUpperCase(c));
+                    c = Character.toUpperCase(c);
+                }
+
+                boolean isDelete = (c == java.awt.event.KeyEvent.VK_BACK_SPACE) || (c == java.awt.event.KeyEvent.VK_DELETE);
+
+                if (text.length() == 3 && !isDelete && Character.isLetterOrDigit(c)) {
+                    evt.consume();
+                    jtxtFiltrar.setText(text + "-" + c);
+                }
+
+                if (text.length() >= 8) {
+                    evt.consume();
+                }
+            }
+        });
     }
 
     public void limpiarTexto() {
