@@ -125,6 +125,18 @@ public class VehiculoControlador {
         }
     }
 
+    public ArrayList<Vehiculo> buscarPorChasis(String chasis) {
+        // Asumiendo que tu API PHP acepta ?CHASIS=...
+        try {
+            String chasisCodificado = URLEncoder.encode(chasis.trim(), StandardCharsets.UTF_8);
+            String urlBuscar = construirConsulta("CHASIS=" + chasisCodificado);
+            return obtener(urlBuscar);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private String construirConsulta(String parametros) {
         return apiUrl + "?" + parametros;
     }
@@ -147,6 +159,5 @@ public class VehiculoControlador {
                 + "&ANIO=" + vehiculo.getANIO()
                 + "&COLOR=" + vehiculo.getCOLOR();
     }
-    
 
 }

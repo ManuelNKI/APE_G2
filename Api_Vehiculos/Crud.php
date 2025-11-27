@@ -39,7 +39,7 @@ class CRUD
         $anio = $_POST['ANIO'];
         $color = $_POST['COLOR'];
 
-        
+
         // se crea la consulta
         $sqlInsert = "INSERT INTO VEHICULO (MARCA, MODELO, PLACA, CHASIS, ANIO, COLOR) VALUES ('$marca' ,'$modelo','$placa', '$chasis', '$anio', '$color')";
         $resultado = $conectat->prepare($sqlInsert);
@@ -47,13 +47,12 @@ class CRUD
         $data = "Insertado";
         echo json_encode($data);
     }
-    
+
     public static function  selectPlaca()
     {
         $connect = new Conexion();
         $conectat = $connect->connect();
 
-        // Validar parámetro requerido
         if (!isset($_GET['PLACA'])) {
             http_response_code(400);
             echo json_encode(["error" => "Falta el parámetro 'PLACA'"]);
@@ -61,8 +60,27 @@ class CRUD
         }
 
         $placa = $_GET['PLACA'];
-        // Se crea la consulta para buscar por cédula
         $sqlSelect = "SELECT * FROM VEHICULO WHERE PLACA='$placa'";
+        $result = $conectat->prepare($sqlSelect);
+        $result->execute();
+        $data = $result->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($data);
+    }
+
+    public static function  selectChasis()
+    {
+        $connect = new Conexion();
+        $conectat = $connect->connect();
+
+        if (!isset($_GET['CHASIS'])) {
+            http_response_code(400);
+            echo json_encode(["error" => "Falta el parámetro 'CHASIS'"]);
+            return;
+        }
+
+        $chasis = $_GET['CHASIS'];
+        $sqlSelect = "SELECT * FROM VEHICULO WHERE CHASIS='$chasis'";
         $result = $conectat->prepare($sqlSelect);
         $result->execute();
         $data = $result->fetchAll(PDO::FETCH_ASSOC);

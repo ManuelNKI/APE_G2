@@ -23,6 +23,8 @@ switch ($opc) {
     case 'GET':
         if(isset($_GET['PLACA'])) {
         CRUD::selectPlaca(); 
+        } elseif(isset($_GET['CHASIS'])) {
+        CRUD::selectChasis();
         } else {
         CRUD::select();
         }

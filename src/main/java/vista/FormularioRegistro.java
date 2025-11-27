@@ -52,6 +52,7 @@ public class FormularioRegistro extends javax.swing.JFrame {
         textoInicio();
         btnInicio();
         initValidaciones();
+
     }
 
     public void obtenerVehiculos() {
@@ -60,7 +61,7 @@ public class FormularioRegistro extends javax.swing.JFrame {
     }
 
     public void cargarTablaVehiculos(ArrayList<Vehiculo> vehiculos) {
-        String[] columnas = {"ID", "Marca", "Modelo", "Placa", "Chasis", "Año", "Color"};
+        String[] columnas = {"ID", "Placa", "Chasis", "Marca", "Modelo", "Año", "Color"};
         String[] filas = new String[7];
         modelo = new DefaultTableModel(null, columnas) {
             @Override
@@ -72,10 +73,10 @@ public class FormularioRegistro extends javax.swing.JFrame {
         if (!vehiculos.isEmpty()) {
             for (Vehiculo vehiculo : vehiculos) {
                 filas[0] = vehiculo.getID();
-                filas[1] = vehiculo.getMARCA();
-                filas[2] = vehiculo.getMODELO();
-                filas[3] = vehiculo.getPLACA();
-                filas[4] = vehiculo.getCHASIS();
+                filas[1] = vehiculo.getPLACA();
+                filas[2] = vehiculo.getCHASIS();
+                filas[3] = vehiculo.getMARCA();
+                filas[4] = vehiculo.getMODELO();
                 filas[5] = vehiculo.getANIO();
                 filas[6] = vehiculo.getCOLOR();
                 modelo.addRow(filas);
@@ -87,7 +88,7 @@ public class FormularioRegistro extends javax.swing.JFrame {
         jtblVehiculos.getColumnModel().getColumn(0).setMaxWidth(40);
 
         // 2. Configurar columna CHASIS (Índice 4) -> Grande
-        jtblVehiculos.getColumnModel().getColumn(4).setPreferredWidth(200);
+        jtblVehiculos.getColumnModel().getColumn(2).setPreferredWidth(200);
 
         // 3. Configurar columna AÑO (Índice 5) -> Pequeña
         jtblVehiculos.getColumnModel().getColumn(5).setPreferredWidth(60);
@@ -108,6 +109,8 @@ public class FormularioRegistro extends javax.swing.JFrame {
         ArrayList<Vehiculo> vehiculos = cliente.buscarVehiculo(placa);
         if (vehiculos != null && !vehiculos.isEmpty()) {
             cargarTablaVehiculos(vehiculos);
+            jbtnMostrar.setEnabled(true);
+            jbtnFiltrar.setEnabled(false);
         } else {
             JOptionPane.showMessageDialog(this,
                     "No se encontró ningún vehículo con la placa: " + placa,
@@ -115,9 +118,6 @@ public class FormularioRegistro extends javax.swing.JFrame {
                     JOptionPane.INFORMATION_MESSAGE);
             obtenerVehiculos();
         }
-        jbtnMostrar.setEnabled(true);
-        jbtnFiltrar.setEnabled(false);
-        
     }
 
     public void guardarVehiculo() {
@@ -145,6 +145,15 @@ public class FormularioRegistro extends javax.swing.JFrame {
             jtxtFPlaca.requestFocus();
             return;
         }
+        ArrayList<Vehiculo> busquedaChasis = cliente.buscarPorChasis(chasis);
+        if (busquedaChasis != null && !busquedaChasis.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "El chasis " + chasis + " ya está registrada en el sistema.\nNo se puede duplicar.",
+                    "Chasis Repetido",
+                    JOptionPane.WARNING_MESSAGE);
+            jtxtFChasis.requestFocus();
+            return;
+        }
 
         Vehiculo vehiculo = new Vehiculo(marca, modelo, placa, chasis, anio, color);
 
@@ -165,6 +174,7 @@ public class FormularioRegistro extends javax.swing.JFrame {
             return;
         }
 
+        // 2. Recolectar datos
         String marca = jtxtFMarca.getText().trim();
         String modelo = jtxtFModelo.getText().trim();
         String placa = jtxtFPlaca.getText().trim();
@@ -172,25 +182,51 @@ public class FormularioRegistro extends javax.swing.JFrame {
         String anio = jtxtFAnio.getText().trim();
         String color = jtxtFColor.getText().trim();
 
+        // 3. Validación de Formato (Lógica)
         String error = validador.validarDatos(marca, modelo, placa, chasis, anio, color);
         if (error != null) {
             JOptionPane.showMessageDialog(this, error, "Error de Validación", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Validación inteligente de duplicados en Edición
-        ArrayList<Vehiculo> busqueda = cliente.buscarVehiculo(placa);
-        if (busqueda != null && !busqueda.isEmpty()) {
-            String idEncontrado = busqueda.get(0).getID();
+        // 4. Validación Base de Datos: PLACA ÚNICA
+        ArrayList<Vehiculo> busquedaPlaca = cliente.buscarVehiculo(placa);
+        if (busquedaPlaca != null && !busquedaPlaca.isEmpty()) {
+            String idEncontrado = busquedaPlaca.get(0).getID();
+            // Si el ID encontrado es DIFERENTE al actual, es un duplicado ilegal
             if (!idEncontrado.equals(id)) {
                 JOptionPane.showMessageDialog(this,
-                        "La placa " + placa + " ya pertenece a otro vehículo registrado.",
+                        "La placa " + placa + " ya pertenece a otro vehículo.",
                         "Placa Duplicada",
                         JOptionPane.WARNING_MESSAGE);
                 return;
             }
         }
 
+// 5. Validación Base de Datos: CHASIS ÚNICO
+        ArrayList<Vehiculo> busquedaChasis = cliente.buscarPorChasis(chasis);
+
+        if (busquedaChasis != null && !busquedaChasis.isEmpty()) {
+            // Recorremos TODOS los resultados (por si la búsqueda devuelve coincidencias parciales)
+            for (Vehiculo v : busquedaChasis) {
+
+                // 1. Convertimos ambos IDs a String puro y quitamos espacios
+                String idActual = String.valueOf(id).trim();
+                String idEncontrado = String.valueOf(v.getID()).trim();
+
+                // 2. Comparamos
+                // Si el ID encontrado NO es el mío, significa que ALGUIEN MÁS tiene ese chasis
+                if (!idEncontrado.equals(idActual)) {
+                    JOptionPane.showMessageDialog(this,
+                            "El chasis " + chasis + " ya está registrado en el vehículo ID: " + idEncontrado,
+                            "Chasis Duplicado",
+                            JOptionPane.WARNING_MESSAGE);
+                    return; // Detenemos todo
+                }
+            }
+        }
+
+        // 6. Si pasa todo, actualizar
         Vehiculo vehiculo = new Vehiculo(id, marca, modelo, chasis, placa, anio, color);
 
         if (cliente.actualizarVehiculo(vehiculo)) {
@@ -384,10 +420,10 @@ public class FormularioRegistro extends javax.swing.JFrame {
                 if (jtblVehiculos.getSelectedRow() != -1) {
                     int fila = jtblVehiculos.getSelectedRow();
                     jtxtFID.setText(jtblVehiculos.getValueAt(fila, 0).toString().trim());
-                    jtxtFMarca.setText(jtblVehiculos.getValueAt(fila, 1).toString().trim());
-                    jtxtFModelo.setText(jtblVehiculos.getValueAt(fila, 2).toString().trim());
-                    jtxtFPlaca.setText(jtblVehiculos.getValueAt(fila, 3).toString().trim());
-                    jtxtFChasis.setText(jtblVehiculos.getValueAt(fila, 4).toString().trim());
+                    jtxtFPlaca.setText(jtblVehiculos.getValueAt(fila, 1).toString().trim());
+                    jtxtFChasis.setText(jtblVehiculos.getValueAt(fila, 2).toString().trim());
+                    jtxtFMarca.setText(jtblVehiculos.getValueAt(fila, 3).toString().trim());
+                    jtxtFModelo.setText(jtblVehiculos.getValueAt(fila, 4).toString().trim());
                     jtxtFAnio.setText(jtblVehiculos.getValueAt(fila, 5).toString().trim());
                     jtxtFColor.setText(jtblVehiculos.getValueAt(fila, 6).toString().trim());
                     botonesEditar();
@@ -570,36 +606,35 @@ public class FormularioRegistro extends javax.swing.JFrame {
                         .addGap(42, 42, 42)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jtxtFAnio, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jtxtFColor, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(jPanel2Layout.createSequentialGroup()
-                                        .addGap(63, 63, 63)
-                                        .addComponent(jtxtFPlaca, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                    .addComponent(jtxtFMarca))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jtxtFID, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                 .addGroup(jPanel2Layout.createSequentialGroup()
                                     .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                     .addComponent(jtxtFModelo, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGroup(jPanel2Layout.createSequentialGroup()
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addComponent(jtxtFID)
-                                        .addComponent(jtxtFChasis, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 61, Short.MAX_VALUE))
+                                    .addComponent(jtxtFAnio, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jtxtFChasis, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGap(63, 63, 63)
+                                .addComponent(jtxtFPlaca, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jtxtFMarca)))
+                        .addGap(61, 61, 61))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGap(216, 216, 216)
                         .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -648,16 +683,16 @@ public class FormularioRegistro extends javax.swing.JFrame {
                                     .addComponent(jtxtFPlaca, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(18, 18, 18)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jLabel4)
+                                    .addComponent(jtxtFChasis, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(jLabel3)
                                     .addComponent(jtxtFMarca, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(18, 18, 18)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(jLabel2)
                                     .addComponent(jtxtFModelo, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(18, 18, 18)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(jLabel4)
-                                    .addComponent(jtxtFChasis, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(18, 18, 18)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(jLabel7)
@@ -718,7 +753,7 @@ public class FormularioRegistro extends javax.swing.JFrame {
                 jbtnFiltrarActionPerformed(evt);
             }
         });
-        jPanel1.add(jbtnFiltrar, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 410, 90, 26));
+        jPanel1.add(jbtnFiltrar, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 410, 80, 26));
 
         jbtnMostrar.setBackground(new java.awt.Color(0, 86, 179));
         jbtnMostrar.setFont(new java.awt.Font("Roboto SemiBold", 0, 14)); // NOI18N
