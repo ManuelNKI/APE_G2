@@ -27,12 +27,19 @@ public class VehiculoControlador {
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     public ArrayList<Vehiculo> obtenerTodosLosVehiculos() {
+        return obtener(apiUrl);
+    }
 
-        // 1. Crear la solicitud GET
+    public ArrayList<Vehiculo> buscarVehiculo(String placa) {
+        String urlBuscar = construirConsulta("PLACA=" + URLEncoder.encode(placa.trim(), StandardCharsets.UTF_8));
+        return obtener(urlBuscar);
+    }
+
+    public ArrayList<Vehiculo> obtener(String url) {
         HttpRequest getRequest;
         try {
             getRequest = HttpRequest.newBuilder()
-                    .uri(new URI(apiUrl))
+                    .uri(new URI(url))
                     .GET()
                     .build();
         } catch (Exception e) {
@@ -59,30 +66,15 @@ public class VehiculoControlador {
         }
     }
 
-    private String construirParametros(Vehiculo vehiculo) {
-        // Se construye la cadena con el formato clave=valor&clave2=valor2
-        return "MARCA=" + vehiculo.getMARCA()
-                + "&MODELO=" + vehiculo.getMODELO()
-                + "&PLACA=" + vehiculo.getPLACA()
-                + "&CHASIS=" + vehiculo.getCHASIS()
-                + "&ANIO=" + vehiculo.getANIO()
-                + "&COLOR=" + vehiculo.getCOLOR();
-    }
-
     public boolean insertarVehiculo(Vehiculo vehiculo) {
-
-        // 1. Convertir el objeto a formato de formulario
         String formData = construirParametros(vehiculo);
         HttpRequest postRequest;
         try {
             postRequest = HttpRequest.newBuilder()
                     .uri(new URI(apiUrl))
-                    // 2. Se envía en forma de formulario
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    // 3. Se envía la cadena del formulario
                     .POST(HttpRequest.BodyPublishers.ofString(formData))
                     .build();
-
         } catch (Exception e) {
             System.err.println("Error al crear la solicitud: " + e.getMessage());
             e.printStackTrace();
@@ -98,34 +90,15 @@ public class VehiculoControlador {
         }
     }
 
-    private String construirParametrosEditar(Vehiculo vehiculo) {
-        // Se construye la cadena con el formato clave=valor&clave2=valor2
-        return "ID=" + vehiculo.getID()
-                + "&MARCA=" + vehiculo.getMARCA()
-                + "&MODELO=" + vehiculo.getMODELO()
-                + "&PLACA=" + vehiculo.getPLACA()
-                + "&CHASIS=" + vehiculo.getCHASIS()
-                + "&ANIO=" + vehiculo.getANIO()
-                + "&COLOR=" + vehiculo.getCOLOR();
-    }
-
-    private String construirConsulta(String parametros) {
-        return apiUrl + "?" + parametros;
-    }
-
     public boolean actualizarVehiculo(Vehiculo vehiculo) {
         try {
-            // 1. Crear la cadena de parámetros
             String fullUrl = construirConsulta(construirParametrosEditar(vehiculo));
-            // 2. Crear la solicitud PUT (se envía un cuerpo vacío ya que los datos van en la URL)
             HttpRequest putRequest = HttpRequest.newBuilder()
                     .uri(new URI(fullUrl))
                     .PUT(HttpRequest.BodyPublishers.noBody()) // Usamos noBody() porque los datos van en la URL
                     .build();
-            // 3. Enviar la solicitud
             HttpResponse<String> response = httpClient.send(putRequest, HttpResponse.BodyHandlers.ofString());
             return true;
-
         } catch (Exception e) {
             System.err.println("Error al actualizar el vehiculo: " + e.getMessage());
             e.printStackTrace();
@@ -135,18 +108,14 @@ public class VehiculoControlador {
 
     public boolean eliminarVehiculo(String id) {
         try {
-            // 1. Crear la cadena de parámetro
             String fullUrl = construirConsulta(
                     "ID=" + URLEncoder.encode(id, StandardCharsets.UTF_8)
             );
-            // 2. Crear la solicitud DELETE
             HttpRequest deleteRequest = HttpRequest.newBuilder()
                     .uri(new URI(fullUrl))
                     .DELETE()
                     .build();
-            // 3. Enviar la solicitud
             HttpResponse<String> response = httpClient.send(deleteRequest, HttpResponse.BodyHandlers.ofString());
-
             return true;
 
         } catch (Exception e) {
@@ -156,30 +125,28 @@ public class VehiculoControlador {
         }
     }
 
-    public Vehiculo buscarVehiculo(String placa) {
-        String urlBuscar = construirConsulta("PLACA=" + URLEncoder.encode(placa.trim(), StandardCharsets.UTF_8));
-        try {
-            HttpRequest peticionGet = HttpRequest.newBuilder()
-                    .uri(new URI(urlBuscar))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> respuesta = httpClient.send(peticionGet, HttpResponse.BodyHandlers.ofString());
-
-            if (respuesta.statusCode() == 200) {
-                String jsonRespuesta = respuesta.body().toString();
-                System.out.println(jsonRespuesta);
-                Type tipoArray = new TypeToken<ArrayList<Vehiculo>>() {
-                }.getType();
-                ArrayList<Vehiculo> lista = gson.fromJson(jsonRespuesta, tipoArray);
-
-                if (lista != null && !lista.isEmpty()) {
-                    return lista.get(0);
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
-        }
-        return null;
+    private String construirConsulta(String parametros) {
+        return apiUrl + "?" + parametros;
     }
+
+    private String construirParametros(Vehiculo vehiculo) {
+        return "MARCA=" + vehiculo.getMARCA()
+                + "&MODELO=" + vehiculo.getMODELO()
+                + "&PLACA=" + vehiculo.getPLACA()
+                + "&CHASIS=" + vehiculo.getCHASIS()
+                + "&ANIO=" + vehiculo.getANIO()
+                + "&COLOR=" + vehiculo.getCOLOR();
+    }
+
+    private String construirParametrosEditar(Vehiculo vehiculo) {
+        return "ID=" + vehiculo.getID()
+                + "&MARCA=" + vehiculo.getMARCA()
+                + "&MODELO=" + vehiculo.getMODELO()
+                + "&PLACA=" + vehiculo.getPLACA()
+                + "&CHASIS=" + vehiculo.getCHASIS()
+                + "&ANIO=" + vehiculo.getANIO()
+                + "&COLOR=" + vehiculo.getCOLOR();
+    }
+    
+
 }

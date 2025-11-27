@@ -4,7 +4,7 @@ class Conexion
 {
     public function connect()
     {
-        $servername = "localhost:3306";
+        $servername = "localhost:3307";
         $username = "root";
         $password = "";
         $dbname = "catalogo";
